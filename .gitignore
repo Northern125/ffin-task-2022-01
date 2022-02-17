@@ -1,6 +1,7 @@
 # my ignores
 .idea/
 files/*test_portfolio.xlsx
+testing.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
