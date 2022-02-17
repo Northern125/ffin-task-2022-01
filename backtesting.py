@@ -168,10 +168,14 @@ class PortfolioBacktest:
                              f'no_shorts_check: {no_shorts_check}')
 
     def keep(self, date: Timestamp, next_date: Timestamp):
+        self.logger.debug(f'Keeping current positions. Date: {date}, next date: {next_date}')
+
         self.positions.loc[next_date] = self.positions.loc[date]
         self.calc_positions_values(next_date)
         self.calc_nav(next_date)
         self.calc_allocation(next_date)
+
+        self.logger.debug('Next date portfolio parameters successfully calculated (positions kept)')
 
     @staticmethod
     def _calc_positions_values(positions: Series, quotes: Series):
@@ -214,7 +218,7 @@ class PortfolioBacktest:
                           rebalance_prices=rebalance_prices)
 
         for i, date in enumerate(self.dates[1:-1]):
-            next_date = self.dates[i + 1]
+            next_date = self.dates[i + 2]
 
             self.keep(date, next_date)
 
