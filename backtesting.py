@@ -126,7 +126,7 @@ class PortfolioBacktest:
     # def set_strategy(self, strategy: Strategy):
     #     self.strategy = strategy
 
-    def perform_sanity_check_date(self, date: Timestamp):
+    def _perform_sanity_check_date(self, date: Timestamp):
         allocation_check = self.allocation.loc[date].sum() == 1
         loan_check = self.positions_values.loc[date, 'cash'] >= - self.max_loan
         no_shorts_check = (self.positions.loc[date, self.securities] > 0).all()
@@ -135,6 +135,9 @@ class PortfolioBacktest:
 
     def do_rebalance(self, date: Timestamp, next_date: Timestamp,
                      positions_change: dict, rebalance_prices: Union[dict, Series]):
+        self.logger.info(f'Starting rebalance procedure. Date: {date}, next date: {next_date}, '
+                         f'positions_change: {positions_change}, rebalance_prices:\n{rebalance_prices}')
+
         rebalance_prices = Series(rebalance_prices).copy()
         positions_change = Series(positions_change).copy()
         value_change = (rebalance_prices * positions_change).copy()
@@ -144,6 +147,9 @@ class PortfolioBacktest:
         rebalance_prices.loc['cash'] = 1
         value_change.loc['cash'] = positions_change.loc['cash'] * rebalance_prices.loc['cash']
 
+        self.logger.debug(f"""positions_change.loc['cash']: {positions_change.loc['cash']}""")
+        self.logger.debug(f'value_change:\n{value_change}')
+
         # calculating next day positions, values, nav, alloc
         positions_next = self.positions.loc[date] + positions_change
         positions_values_next = self._calc_positions_values(positions_next,
@@ -151,18 +157,37 @@ class PortfolioBacktest:
         nav_next = self._calc_nav(positions_values_next)
         allocation_next = self._calc_allocation(positions_values_next, nav_next)
 
+        self.logger.debug(f'positions_next:\n{positions_next}')
+        self.logger.debug(f'positions_values_next:\n{positions_values_next}')
+        self.logger.debug(f'nav_next: {nav_next}')
+        self.logger.debug(f'allocation_next:\n{allocation_next}')
+
         # checking if rebalance can be done
-        max_loan_check = value_change.loc['cash'] < - self.max_loan
+        max_loan_check = positions_values_next.loc['cash'] > - self.max_loan
         no_shorts_check = (positions_next.loc[self.securities] > 0).all()
         rebalance_is_possible = max_loan_check and no_shorts_check
+        self.logger.info(f'Rebalance is possible? - {rebalance_is_possible}')
 
         # performing rebalance if it is possible
         if rebalance_is_possible:
             self.rebalance_prices.loc[next_date] = rebalance_prices
             self.positions.loc[next_date] = positions_next
-            self.positions_values = positions_values_next
+            self.positions_values.loc[next_date] = positions_values_next
             self.nav.loc[next_date] = nav_next
-            self.allocation[next_date] = allocation_next
+            self.allocation.loc[next_date] = allocation_next
+
+            self.logger.info('Rebalance successfully completed')
+        else:
+            self.keep(date, next_date)
+            self.logger.info(f'Rebalance can\'t be completed, this is why: '
+                             f'max_loan_check: {max_loan_check}, '
+                             f'no_shorts_check: {no_shorts_check}')
+
+    def keep(self, date: Timestamp, next_date: Timestamp):
+        self.positions.loc[next_date] = self.positions.loc[date]
+        self.calc_positions_values(next_date)
+        self.calc_nav(next_date)
+        self.calc_allocation(next_date)
 
     @staticmethod
     def _calc_positions_values(positions: Series, quotes: Series):
@@ -211,9 +236,23 @@ class PortfolioBacktest:
                 positions_change = {sec: -1}
                 rebalance_prices = self.quotes.loc[next_date]
                 self.do_rebalance(date, next_date, positions_change, rebalance_prices)
+            else:
+                self.keep(date, next_date)
 
             # alloc_calcd = _calc_alloc(vix)
 
     def run(self, *args, **kwargs):
         self.apply_strategy(*args, *kwargs)
 
+    def get_combined_df(self):
+        _combined = {'price': self.quotes,
+                     'weight': self.allocation,
+                     '#': self.positions,
+                     'value': self.positions_values,
+                     'rebalance price': self.rebalance_prices}
+
+        portfolio = concat(_combined, axis='columns', join='outer').copy()
+        portfolio.columns.names = ['attr', 'sec']
+        portfolio['nav'] = self.nav
+
+        return portfolio
