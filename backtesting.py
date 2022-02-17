@@ -59,7 +59,7 @@ class PortfolioBacktest:
         self.dates = dates
 
         # quotes (prices)
-        self.quotes = quotes
+        self.quotes = quotes.copy()
         self.quotes['cash'] = 1
         self.logger.debug(f'quotes:\n{quotes}')
 
