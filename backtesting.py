@@ -1,7 +1,6 @@
 from typing import Union
 
 from pandas import DataFrame, Series, DatetimeIndex, concat, Timestamp
-from numpy import nan
 import logging
 
 
@@ -91,18 +90,8 @@ class PortfolioBacktest:
         self.allocation.iloc[0] = self.positions_values.iloc[0] / self.nav.iloc[0]
         self.logger.debug(f'allocation:\n{self.allocation}')
 
-        # combined
-        # _combined = {'price': self.quotes,
-        #              'weight': self.allocation,
-        #              '#': self.positions,
-        #              'value': self.positions_values,
-        #              'rebalance price': self.rebalance_prices}
-        # self.portfolio = concat(_combined, axis='columns', join='outer').copy()
-        # self.portfolio.columns.names = ['attr', 'sec']
-        # self.portfolio['nav'] = self.nav
-        # self.portfolio.iloc[1:] = nan
-        #
-        # self.logger.debug(f'portfolio (combined df):{self.portfolio}')
+        # rebalances info (positions changes)
+        self.rebalances = DataFrame(columns=_cols, index=dates, dtype=float)
 
         # strategy
         self.strategy = None
@@ -159,6 +148,7 @@ class PortfolioBacktest:
             self.positions_values.loc[next_date] = positions_values_next
             self.nav.loc[next_date] = nav_next
             self.allocation.loc[next_date] = allocation_next
+            self.rebalances.loc[next_date] = positions_change
 
             self.logger.info('Rebalance successfully completed')
         else:
@@ -227,6 +217,7 @@ class PortfolioBacktest:
                      'weight': self.allocation,
                      '#': self.positions,
                      'value': self.positions_values,
+                     'rebalance': self.rebalances,
                      'rebalance price': self.rebalance_prices}
 
         portfolio = concat(_combined, axis='columns', join='outer').copy()
