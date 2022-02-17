@@ -147,7 +147,7 @@ class PortfolioBacktest:
         self.logger.debug(f'allocation_next:\n{allocation_next}')
 
         # checking if rebalance can be done
-        max_loan_check = positions_values_next.loc['cash'] > - self.max_loan
+        max_loan_check = positions_values_next.loc['cash'] >= - self.max_loan
         no_shorts_check = (positions_next.loc[self.securities] > 0).all()
         rebalance_is_possible = max_loan_check and no_shorts_check
         self.logger.info(f'Rebalance is possible? - {rebalance_is_possible}')
