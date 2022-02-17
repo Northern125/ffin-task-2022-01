@@ -42,7 +42,7 @@ class PortfolioBacktest:
                  capital: float = 1e6,
                  ini_positions: Series = None,
                  max_loan: float = 0):
-        self.__name__ = 'PortfolioBacktesting'
+        self.__name__ = 'PortfolioBacktest'
 
         # logger
         self.logger = logging.getLogger(self.__name__)
@@ -61,7 +61,7 @@ class PortfolioBacktest:
         # quotes (prices)
         self.quotes = quotes.copy()
         self.quotes['cash'] = 1
-        self.logger.debug(f'quotes:\n{quotes}')
+        self.logger.debug(f'quotes:\n{self.quotes}')
 
         # rebalance prices
         self.rebalance_prices = DataFrame(columns=_cols, index=dates, dtype=float)
