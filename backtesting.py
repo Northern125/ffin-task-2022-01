@@ -31,22 +31,6 @@ def perform_backtest(portfolio: Series, risk_free: Series, risk_free_annualized=
     return portfolio
 
 
-def backtest_strategy(portfolio: DataFrame):
-    portfolio = portfolio.copy()
-    portfolio['rebalance'].replace(nan, 0, inplace=True)
-
-    secs = portfolio.index.get_level_values('sec').unique().values
-    sec = secs[0]
-
-    if not (portfolio.groupby('date')['weight'].sum() == 1).all():
-        raise Exception('Weights sum should be equal to 1 for each date')
-
-    if (portfolio.xs('cash', axis='index', level='sec')['price'] != 1).any():
-        raise Exception('Price of cash should always be 1')
-    if (portfolio.xs('cash', axis='index', level='sec')['rebalance price'] != 1).any():
-        raise Exception('Rebalance price of cash should always be 1')
-
-
 class PortfolioBacktest:
     """
     Daily backtesting is assumed
@@ -210,39 +194,29 @@ class PortfolioBacktest:
     def calc_allocation(self, date):
         self.allocation.loc[date] = self._calc_allocation(self.positions_values.loc[date], self.nav.loc[date])
 
-    def apply_strategy(self, exogenous: Series):
-        exogenous = exogenous.copy()
+    def run_strategy(self):
+        """
+        Simple buy and hold strategy for a single asset
+        :return: None
+        """
         sec = self.securities[0]
 
-        # def _calc_alloc(_vix, thresh_1=18, thresh_2=23, thresh_3=30):
-        #     _alloc = 1
-        #
-        #     if thresh_1 <= _vix < thresh_2:
-        #         _alloc = .5
-        #     elif _vix >= thresh_2:
-        #         _alloc = .25
-        #     elif _vix >= thresh_3:
-        #         _alloc = 0
-        #
-        #     return _alloc
+        ini_free_cash = self.positions_values.iloc[0].loc['cash'] + self.max_loan
+        buy_price = self.quotes.iloc[0].loc[sec]
+        n_securities_to_buy = ini_free_cash / buy_price
 
-        for i, date in enumerate(self.dates[:-1]):
+        positions_change = {sec: n_securities_to_buy}
+        rebalance_prices = {sec: buy_price}
+
+        self.do_rebalance(self.dates[0],
+                          self.dates[1],
+                          positions_change=positions_change,
+                          rebalance_prices=rebalance_prices)
+
+        for i, date in enumerate(self.dates[1:-1]):
             next_date = self.dates[i + 1]
-            # vix = exogenous.loc[date, 'vix']
-            flag = exogenous.loc[date]
-            alloc_curr = self.allocation.loc[date, sec]
 
-            if flag == 1:
-                positions_change = {sec: -1}
-                rebalance_prices = self.quotes.loc[next_date]
-                self.do_rebalance(date, next_date, positions_change, rebalance_prices)
-            else:
-                self.keep(date, next_date)
-
-            # alloc_calcd = _calc_alloc(vix)
-
-    def run(self, *args, **kwargs):
-        self.apply_strategy(*args, *kwargs)
+            self.keep(date, next_date)
 
     def get_combined_df(self):
         _combined = {'price': self.quotes,
