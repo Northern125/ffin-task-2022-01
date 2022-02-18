@@ -40,7 +40,8 @@ class PortfolioBacktest:
                  quotes: DataFrame,
                  capital: float = 1e6,
                  ini_positions: Series = None,
-                 max_loan: float = 0):
+                 max_loan: float = 0,
+                 lower_freq: int = None):
         self.__name__ = 'PortfolioBacktest'
 
         # logger
@@ -93,6 +94,12 @@ class PortfolioBacktest:
         # rebalances info (positions changes)
         self.rebalances = DataFrame(columns=_cols, index=dates, dtype=float)
 
+        # frequency of trades
+        self.lower_freq = lower_freq
+
+        # date of the last trade
+        self.last_trade_date = None
+
         # strategy
         self.strategy = None
 
@@ -138,8 +145,11 @@ class PortfolioBacktest:
         # checking if rebalance can be done
         max_loan_check = positions_values_next.loc['cash'] >= - self.max_loan
         no_shorts_check = (positions_next.loc[self.securities] > 0).all()
-        rebalance_is_possible = max_loan_check and no_shorts_check
-        self.logger.info(f'Rebalance is possible? - {rebalance_is_possible}')
+        lower_freq_check = True
+        if self.lower_freq is not None and self.last_trade_date is not None:
+            lower_freq_check = (next_date - self.last_trade_date).days >= self.lower_freq
+        rebalance_is_possible = max_loan_check and no_shorts_check and lower_freq_check
+        self.logger.info(f'date: {date}, next date: {next_date}, Rebalance is possible? - {rebalance_is_possible}')
 
         # performing rebalance if it is possible
         if rebalance_is_possible:
@@ -150,12 +160,16 @@ class PortfolioBacktest:
             self.allocation.loc[next_date] = allocation_next
             self.rebalances.loc[next_date] = positions_change
 
+            self.last_trade_date = next_date
+
             self.logger.info('Rebalance successfully completed')
         else:
             self.keep(date, next_date)
-            self.logger.info(f'Rebalance can\'t be completed, this is why: '
+            self.logger.info(f'date: {date}, next date: {next_date}. '
+                             f'Rebalance can\'t be completed, this is why: '
                              f'max_loan_check: {max_loan_check}, '
-                             f'no_shorts_check: {no_shorts_check}')
+                             f'no_shorts_check: {no_shorts_check}, '
+                             f'lower_freq_check: {lower_freq_check}')
 
     def keep(self, date: Timestamp, next_date: Timestamp):
         self.logger.debug(f'Keeping current positions. Date: {date}, next date: {next_date}')
