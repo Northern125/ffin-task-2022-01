@@ -182,6 +182,12 @@ class PortfolioBacktest:
                              f'lower_freq_check: {lower_freq_check}')
 
     def keep(self, date: Timestamp, next_date: Timestamp):
+        """
+        Keep all positions as they are
+        :param date:
+        :param next_date:
+        :return:
+        """
         self.logger.debug(f'Keeping current positions. Date: {date}, next date: {next_date}')
 
         self.positions.loc[next_date] = self.positions.loc[date]
@@ -211,6 +217,11 @@ class PortfolioBacktest:
 
     def calc_allocation(self, date):
         self.allocation.loc[date] = self._calc_allocation(self.positions_values.loc[date], self.nav.loc[date])
+
+    def calc_pos_nav_alloc(self, date):
+        self.calc_positions_values(date)
+        self.calc_nav(date)
+        self.calc_allocation(date)
 
     def run_strategy(self):
         """
