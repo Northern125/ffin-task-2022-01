@@ -1,6 +1,7 @@
 from typing import Union
 
 from pandas import DataFrame, Series, DatetimeIndex, concat, Timestamp
+from numpy import nan
 import logging
 
 
@@ -38,6 +39,7 @@ class PortfolioBacktest:
                  securities: list,
                  dates: DatetimeIndex,
                  quotes: DataFrame,
+                 cashflows: DataFrame = None,
                  capital: float = 1e6,
                  ini_positions: Series = None,
                  max_loan: float = 0,
@@ -62,6 +64,14 @@ class PortfolioBacktest:
         self.quotes = quotes.copy()
         self.quotes['cash'] = 1
         self.logger.debug(f'quotes:\n{self.quotes}')
+
+        # cashflows
+        if cashflows is not None:
+            self.cashflows = cashflows.copy()
+            self.cashflows['cash'] = 0
+        else:
+            self.cashflows = DataFrame(columns=_cols, index=dates, dtype=float)
+        self.cashflows.replace(nan, 0, inplace=True)
 
         # rebalance prices
         self.rebalance_prices = DataFrame(columns=_cols, index=dates, dtype=float)
@@ -228,6 +238,7 @@ class PortfolioBacktest:
 
     def get_combined_df(self):
         _combined = {'price': self.quotes,
+                     'cashflow': self.cashflows,
                      'weight': self.allocation,
                      '#': self.positions,
                      'value': self.positions_values,
