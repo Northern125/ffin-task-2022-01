@@ -33,6 +33,12 @@ class VIXCounteringStrategyBacktest(PortfolioBacktest):
 
         for i, date in enumerate(self.dates[:-1]):
             next_date = self.dates[i + 1]
+
+            todays_cashflow = self.cashflows.loc[date].sum()
+            if todays_cashflow != 0:
+                self.positions.loc[date, 'cash'] += todays_cashflow
+                self.calc_pos_nav_alloc(date)
+
             vix_curr = vix.loc[date]
             alloc_curr = self.allocation.loc[date, sec]
 
