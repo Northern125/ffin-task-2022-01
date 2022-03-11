@@ -154,7 +154,7 @@ class PortfolioBacktest:
 
         # checking if rebalance can be done
         max_loan_check = positions_values_next.loc['cash'] >= - self.max_loan
-        no_shorts_check = (positions_next.loc[self.securities] > 0).all()
+        no_shorts_check = (positions_next.loc[self.securities] >= 0).all()
         lower_freq_check = True
         if self.lower_freq is not None and self.last_trade_date is not None:
             lower_freq_check = (next_date - self.last_trade_date).days >= self.lower_freq
