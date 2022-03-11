@@ -126,7 +126,7 @@ class PortfolioBacktest:
     def do_rebalance(self, date: Timestamp, next_date: Timestamp,
                      positions_change: dict, rebalance_prices: Union[dict, Series]):
         self.logger.info(f'Starting rebalance procedure. Date: {date}, next date: {next_date}, '
-                         f'positions_change: {positions_change}, rebalance_prices:\n{rebalance_prices}')
+                         f'positions_change:\n{positions_change}, rebalance_prices:\n{rebalance_prices}')
 
         rebalance_prices = Series(rebalance_prices).copy()
         positions_change = Series(positions_change).copy()
