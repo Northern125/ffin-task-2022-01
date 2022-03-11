@@ -54,8 +54,8 @@ class PortfolioBacktest:
         self.max_loan = max_loan
 
         # cols of each dataframe (securities list + cash)
-        self.securities = securities
-        _cols = securities + ['cash']
+        self.securities = list(securities)
+        _cols = self.securities + ['cash']
 
         # dates
         self.dates = dates
