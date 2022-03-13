@@ -45,6 +45,10 @@ def perform_nav_backtest(portfolio: Series,
 
 class PortfolioBacktest:
     """
+    Generic class for portfolio backtesting
+
+    To run custom trading strategy, one should inherit this class and re-define ``run_strategy`` function
+
     Daily backtesting is assumed
     """
     def __init__(self,
