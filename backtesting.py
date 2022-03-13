@@ -5,10 +5,10 @@ from numpy import nan
 import logging
 
 
-def perform_backtest(portfolio: Series,
-                     risk_free: Series,
-                     risk_free_annualized: bool = True,
-                     annualization_factor: int = 360):
+def perform_nav_backtest(portfolio: Series,
+                         risk_free: Series,
+                         risk_free_annualized: bool = True,
+                         annualization_factor: int = 360):
     """
     Given historical portfolio NAV series and historical risk free rate series, create a DataFrame containing
     different metrics like daily return, total return etc, as well as backtest portfolio VS risk free rate
