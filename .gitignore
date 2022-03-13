@@ -2,6 +2,7 @@
 .idea/
 files/*test_portfolio.xlsx
 testing.ipynb
+files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
