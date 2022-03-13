@@ -59,15 +59,18 @@ class PortfolioBacktest:
                  capital: float = 1e6,
                  ini_positions: Series = None,
                  max_loan: float = 0,
-                 lower_freq: int = None):
+                 lower_freq: int = None,
+                 no_shorts_check_eps: float = 1e-10):
         self.__name__ = 'PortfolioBacktest'
 
         # logger
         self.logger = logging.getLogger(self.__name__)
         self.logger.info(f'Creating an instance of {self.logger.name}')
 
-        # loan
+        # fixed parameters
         self.max_loan = max_loan
+        self.no_shorts_check_eps = no_shorts_check_eps
+        self.lower_freq = lower_freq
 
         # cols of each dataframe (securities list + cash)
         self.securities = list(securities)
@@ -120,9 +123,6 @@ class PortfolioBacktest:
         # rebalances info (positions changes)
         self.rebalances = DataFrame(columns=_cols, index=dates, dtype=float)
 
-        # frequency of trades
-        self.lower_freq = lower_freq
-
         # date of the last trade
         self.last_trade_date = None
 
@@ -145,7 +145,7 @@ class PortfolioBacktest:
                          f'positions_change:\n{positions_change}, rebalance_prices:\n{rebalance_prices}')
 
         rebalance_prices = Series(rebalance_prices).copy()
-        positions_change = Series(positions_change).copy()
+        positions_change = Series(positions_change).replace(nan, 0).copy()
         value_change = (rebalance_prices * positions_change).copy()
 
         # dealing w/ cash change
@@ -170,7 +170,7 @@ class PortfolioBacktest:
 
         # checking if rebalance can be done
         max_loan_check = positions_values_next.loc['cash'] >= - self.max_loan
-        no_shorts_check = (positions_next.loc[self.securities] >= 0).all()
+        no_shorts_check = (positions_next.loc[self.securities] >= - self.no_shorts_check_eps).all()
         lower_freq_check = True
         if self.lower_freq is not None and self.last_trade_date is not None:
             lower_freq_check = (next_date - self.last_trade_date).days >= self.lower_freq
@@ -196,6 +196,11 @@ class PortfolioBacktest:
                              f'max_loan_check: {max_loan_check}, '
                              f'no_shorts_check: {no_shorts_check}, '
                              f'lower_freq_check: {lower_freq_check}')
+            if not no_shorts_check:
+                self.logger.debug(f'date: {date}, next_date: {next_date}. '
+                                  f'no_shorts_check is {no_shorts_check}. '
+                                  f"""negative positions_next: """
+                                  f"""{positions_next[positions_next < - self.no_shorts_check_eps].to_dict()}""")
 
     def keep(self, date: Timestamp, next_date: Timestamp):
         """
