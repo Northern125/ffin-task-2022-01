@@ -1,2 +1,2 @@
-# ffin-task-2022-01
-Freedom Finance task, Jan - Feb 2022
+# portfolio-backtesting
+Backtester for portfolio algo strategies. Given the logic of allocation, the module performs backtesting and calculates various metrics like total return, annualized return, excess return etc.
